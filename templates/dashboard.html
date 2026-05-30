@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Estado de Cámaras</h4>
+    <div>
+        <button class="btn btn-success btn-sm me-1" onclick="startAll()" id="btn-start-all">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            Iniciar todas
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="stopAll()" id="btn-stop-all">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="12" height="16"/></svg>
+            Detener todas
+        </button>
+    </div>
+</div>
+
+<div class="row" id="camera-cards">
+    {% for cam in cameras %}
+    <div class="col-md-6 col-lg-4 col-xl-3 mb-3" data-camera="{{ cam.name }}">
+        <div class="card h-100 border-{{ 'success' if cam.status == 'recording' else ('danger' if cam.status == 'error' else 'secondary') }}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>{{ cam.name }}</strong>
+                <span class="badge bg-{{ 'success' if cam.status == 'recording' else ('danger' if cam.status == 'error' else 'secondary') }} status-badge">
+                    {{ 'Grabando' if cam.status == 'recording' else ('Error' if cam.status == 'error' else 'Detenido') }}
+                </span>
+            </div>
+            <div class="card-body">
+                <small class="text-muted d-block mb-1">{{ cam.url }}</small>
+                <small class="text-muted d-block mb-2">
+                    Split: <strong>{{ cam.split }}</strong>
+                </small>
+                {% if cam.started_at %}
+                <small class="text-muted d-block">Inicio: {{ cam.started_at[:19] if cam.started_at is string else cam.started_at }}</small>
+                {% endif %}
+                {% if cam.last_file %}
+                <small class="text-muted d-block text-truncate" title="{{ cam.last_file }}">
+                    Último: {{ cam.last_file.split('/')[-1] }}
+                </small>
+                {% endif %}
+                {% if cam.error %}
+                <small class="text-danger d-block">{{ cam.error }}</small>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                {% if cam.status == 'recording' %}
+                <button class="btn btn-outline-danger btn-sm w-100" onclick="stopCamera('{{ cam.name }}')">Detener</button>
+                {% else %}
+                <button class="btn btn-outline-success btn-sm w-100" onclick="startCamera('{{ cam.name }}')">Iniciar</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-warning">No hay cámaras configuradas. Revisa el archivo .env</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    setInterval(pollStatus, 3000);
+</script>
+{% endblock %}
