@@ -1,12 +1,17 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
 
+def _now():
+    return datetime.now(timezone.utc).astimezone()
+
+
 def seconds_until_next_hour() -> int:
-    now = datetime.now()
+    now = _now()
     next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    return int((next_hour - now).total_seconds())
+    remaining = int((next_hour - now).total_seconds())
+    return max(remaining, 0)
 
 
 def segment_filename(now: datetime, is_partial: bool) -> str:

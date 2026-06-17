@@ -162,10 +162,15 @@ async def recordings_tree():
 
 @app.get("/api/recordings/stream")
 async def stream_recording(path: str):
-    file_path = settings.recordings_dir / path
-    if not file_path.exists() or not file_path.is_file():
+    resolved = (settings.recordings_dir / path).resolve()
+    base = settings.recordings_dir.resolve()
+    try:
+        resolved.relative_to(base)
+    except ValueError:
+        raise HTTPException(403, "Access denied")
+    if not resolved.exists() or not resolved.is_file():
         raise HTTPException(404, "File not found")
-    return FileResponse(str(file_path), media_type="video/mp4")
+    return FileResponse(str(resolved), media_type="video/mp4")
 
 
 def month_name_es(m: int) -> str:

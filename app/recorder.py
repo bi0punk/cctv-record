@@ -77,9 +77,8 @@ class CameraRecorder:
                         self._processes = await self._spawn_segment(
                             duration=remaining, partial=True
                         )
-                    # fall through: if remaining <= 10, start hourly right away
 
-                wait = seconds_until_next_hour() - 5
+                wait = max(seconds_until_next_hour() - 5, 0)
                 if wait > 0:
                     await asyncio.sleep(wait)
 
@@ -120,7 +119,6 @@ class CameraRecorder:
         for half, filt in halves:
             suffix = f"_{half}" if half else ""
             output_path = output_dir / f"{base_name}{suffix}.mp4"
-            self._last_file = str(output_path)
             proc = await self._run_ffmpeg(
                 url=self.camera.url,
                 output_path=output_path,
@@ -128,6 +126,10 @@ class CameraRecorder:
                 crop_filter=filt if filt else None,
             )
             procs.append(proc)
+
+        # Only set _last_file after all ffmpeg processes started successfully
+        if procs and halves:
+            self._last_file = str(output_dir / f"{base_name}{'_L' if halves[0][0] else ''}.mp4")
 
         return procs
 

@@ -25,7 +25,12 @@ class Settings(BaseModel):
 
 def load_settings() -> Settings:
     raw = os.getenv("CAMERAS_JSON", "[]")
-    cameras_data = json.loads(raw)
+    try:
+        cameras_data = json.loads(raw)
+    except json.JSONDecodeError:
+        raise ValueError(f"CAMERAS_JSON is not valid JSON: {raw[:200]}")
+    if not isinstance(cameras_data, list):
+        raise ValueError("CAMERAS_JSON must be a JSON array")
     cameras = [CameraConfig(**c) for c in cameras_data]
 
     recordings_dir = Path(os.getenv("RECORDINGS_DIR", "./recordings"))
