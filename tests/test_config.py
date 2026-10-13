@@ -1,6 +1,8 @@
 import json
+
 import pytest
-from app.config import load_settings, CameraConfig, Settings
+
+from app.config import CameraConfig, load_settings
 
 
 class TestCameraConfig:
@@ -14,7 +16,7 @@ class TestCameraConfig:
         assert cam.split == "none"
 
     def test_invalid_split_raises(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             CameraConfig(name="Test", url="rtsp://example.com/stream", split="invalid")
 
 

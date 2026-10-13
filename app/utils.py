@@ -1,10 +1,9 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 
 def _now():
-    return datetime.now(timezone.utc).astimezone()
+    return datetime.now(UTC).astimezone()
 
 
 def seconds_until_next_hour() -> int:
@@ -21,13 +20,11 @@ def segment_filename(now: datetime, is_partial: bool) -> str:
     return next_hour.strftime("%H_%M_%S")
 
 
-def build_output_path(
-    base_dir: Path, camera_name: str, dt: datetime
-) -> Path:
+def build_output_path(base_dir: Path, camera_name: str, dt: datetime) -> Path:
     return base_dir / str(dt.year) / f"{dt.month:02d}" / f"{dt.day:02d}" / camera_name
 
 
-def crop_filter(split: str, half: str) -> Optional[str]:
+def crop_filter(split: str, half: str) -> str | None:
     if split == "vertical":
         if half == "L":
             return "crop=iw/2:ih:0:0"

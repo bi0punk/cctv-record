@@ -1,13 +1,12 @@
 import asyncio
+import contextlib
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from app.config import CameraConfig, settings
 from app.utils import (
     build_output_path,
-    crop_filter,
     halves_for_split,
     seconds_until_next_hour,
     segment_filename,
@@ -19,11 +18,11 @@ logger = logging.getLogger(__name__)
 class CameraRecorder:
     def __init__(self, camera: CameraConfig):
         self.camera = camera
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self._processes: list[asyncio.subprocess.Process] = []
-        self._started_at: Optional[datetime] = None
-        self._last_file: Optional[str] = None
-        self._error: Optional[str] = None
+        self._started_at: datetime | None = None
+        self._last_file: str | None = None
+        self._error: str | None = None
         self._lock = asyncio.Lock()
 
     @property
@@ -35,15 +34,15 @@ class CameraRecorder:
         return "stopped"
 
     @property
-    def started_at(self) -> Optional[datetime]:
+    def started_at(self) -> datetime | None:
         return self._started_at
 
     @property
-    def last_file(self) -> Optional[str]:
+    def last_file(self) -> str | None:
         return self._last_file
 
     @property
-    def error(self) -> Optional[str]:
+    def error(self) -> str | None:
         return self._error
 
     async def start(self):
@@ -58,10 +57,8 @@ class CameraRecorder:
         async with self._lock:
             if self._task:
                 self._task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError, Exception):
                     await self._task
-                except (asyncio.CancelledError, Exception):
-                    pass
                 self._task = None
             await self._kill_processes(self._processes)
             self._processes = []
@@ -85,9 +82,7 @@ class CameraRecorder:
                 if asyncio.current_task().cancelled():
                     break
 
-                new_procs = await self._spawn_segment(
-                    duration=3600 + 5, partial=False
-                )
+                new_procs = await self._spawn_segment(duration=3600 + 5, partial=False)
 
                 await asyncio.sleep(10)
 
@@ -107,9 +102,7 @@ class CameraRecorder:
         self, duration: int, partial: bool
     ) -> list[asyncio.subprocess.Process]:
         now = datetime.now()
-        output_dir = build_output_path(
-            settings.recordings_dir, self.camera.name, now
-        )
+        output_dir = build_output_path(settings.recordings_dir, self.camera.name, now)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         base_name = segment_filename(now, partial)
@@ -138,7 +131,7 @@ class CameraRecorder:
         url: str,
         output_path: Path,
         duration: int,
-        crop_filter: Optional[str] = None,
+        crop_filter: str | None = None,
     ) -> asyncio.subprocess.Process:
         cmd = [
             "ffmpeg",
@@ -175,15 +168,13 @@ class CameraRecorder:
         )
         return proc
 
-    async def _kill_processes(
-        self, procs: list[asyncio.subprocess.Process]
-    ):
+    async def _kill_processes(self, procs: list[asyncio.subprocess.Process]):
         for proc in procs:
             if proc.returncode is None:
                 try:
                     proc.terminate()
                     await asyncio.wait_for(proc.wait(), timeout=5)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     proc.kill()
                     await proc.wait()
 
@@ -191,10 +182,10 @@ class CameraRecorder:
 class RecorderManager:
     def __init__(self):
         self._recorders: dict[str, CameraRecorder] = {}
-        self._started_at: Optional[datetime] = None
+        self._started_at: datetime | None = None
 
     @property
-    def started_at(self) -> Optional[datetime]:
+    def started_at(self) -> datetime | None:
         return self._started_at
 
     def load_cameras(self, cameras: list[CameraConfig]):
@@ -222,7 +213,7 @@ class RecorderManager:
             await self._recorders[name].stop()
             await self._recorders[name].start()
 
-    def get_status(self, name: str) -> Optional[dict]:
+    def get_status(self, name: str) -> dict | None:
         rec = self._recorders.get(name)
         if not rec:
             return None
@@ -237,7 +228,8 @@ class RecorderManager:
         }
 
     def get_all_status(self) -> list[dict]:
-        return [self.get_status(name) for name in self._recorders]
+        statuses = [self.get_status(name) for name in self._recorders]
+        return [s for s in statuses if s is not None]
 
     def system_status(self) -> dict:
         all_status = self.get_all_status()

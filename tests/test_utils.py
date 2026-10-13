@@ -1,27 +1,28 @@
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
+
 from app.utils import (
-    seconds_until_next_hour,
-    segment_filename,
     build_output_path,
     crop_filter,
     halves_for_split,
+    seconds_until_next_hour,
+    segment_filename,
 )
 
 
 class TestSecondsUntilNextHour:
     def test_exact_hour_returns_3600(self, monkeypatch):
-        fixed = datetime(2026, 6, 23, 10, 0, 0, 0, tzinfo=timezone.utc).astimezone()
+        fixed = datetime(2026, 6, 23, 10, 0, 0, 0, tzinfo=UTC).astimezone()
         monkeypatch.setattr("app.utils._now", lambda: fixed)
         assert seconds_until_next_hour() == 3600
 
     def test_15_minutes_before(self, monkeypatch):
-        fixed = datetime(2026, 6, 23, 10, 45, 0, 0, tzinfo=timezone.utc).astimezone()
+        fixed = datetime(2026, 6, 23, 10, 45, 0, 0, tzinfo=UTC).astimezone()
         monkeypatch.setattr("app.utils._now", lambda: fixed)
         assert seconds_until_next_hour() == 900
 
     def test_1_second_before(self, monkeypatch):
-        fixed = datetime(2026, 6, 23, 10, 59, 59, 0, tzinfo=timezone.utc).astimezone()
+        fixed = datetime(2026, 6, 23, 10, 59, 59, 0, tzinfo=UTC).astimezone()
         monkeypatch.setattr("app.utils._now", lambda: fixed)
         assert seconds_until_next_hour() == 1
 

@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -15,9 +14,9 @@ class CameraStatusOut(BaseModel):
     url: str
     split: str
     status: str  # "recording" | "stopped" | "error"
-    started_at: Optional[datetime] = None
-    last_file: Optional[str] = None
-    error: Optional[str] = None
+    started_at: datetime | None = None
+    last_file: str | None = None
+    error: str | None = None
 
 
 class RecordingNode(BaseModel):
@@ -25,7 +24,7 @@ class RecordingNode(BaseModel):
     parent: str
     text: str
     type: str = "folder"
-    data: Optional[dict] = None
+    data: dict | None = None
 
 
 class SystemStatusOut(BaseModel):
@@ -33,4 +32,4 @@ class SystemStatusOut(BaseModel):
     recording_count: int
     error_count: int
     recordings_dir: str
-    uptime: Optional[float] = None
+    uptime: float | None = None

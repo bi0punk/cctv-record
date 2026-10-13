@@ -1,9 +1,10 @@
-import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from httpx import AsyncClient, ASGITransport
-from app.main import app
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+
 from app.config import CameraConfig
+from app.main import app
 from app.recorder import manager
 
 
@@ -20,6 +21,7 @@ def make_mock_process():
 def mock_ffmpeg(mocker):
     async def _mock_subprocess(*args, **kwargs):
         return make_mock_process()
+
     mocker.patch(
         "app.recorder.asyncio.create_subprocess_exec",
         _mock_subprocess,
@@ -65,9 +67,11 @@ class TestAPIEndpoints:
         assert data["total_cameras"] == 0
 
     async def test_api_cameras_with_data(self, client):
-        manager.load_cameras([
-            CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
-        ])
+        manager.load_cameras(
+            [
+                CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
+            ]
+        )
         resp = await client.get("/api/cameras")
         assert resp.status_code == 200
         data = resp.json()
@@ -76,10 +80,12 @@ class TestAPIEndpoints:
         assert data[0]["status"] == "stopped"
 
     async def test_start_stop_all(self, client):
-        manager.load_cameras([
-            CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
-            CameraConfig(name="Cam2", url="rtsp://cam2", split="none"),
-        ])
+        manager.load_cameras(
+            [
+                CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
+                CameraConfig(name="Cam2", url="rtsp://cam2", split="none"),
+            ]
+        )
 
         resp = await client.post("/api/start")
         assert resp.status_code == 200
@@ -94,9 +100,11 @@ class TestAPIEndpoints:
         assert status["recording_count"] == 0
 
     async def test_individual_camera_control(self, client):
-        manager.load_cameras([
-            CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
-        ])
+        manager.load_cameras(
+            [
+                CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
+            ]
+        )
 
         resp = await client.post("/api/camera/Cam1/start")
         assert resp.status_code == 200
@@ -107,9 +115,11 @@ class TestAPIEndpoints:
         assert (await client.get("/api/status")).json()["recording_count"] == 0
 
     async def test_restart_camera(self, client):
-        manager.load_cameras([
-            CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
-        ])
+        manager.load_cameras(
+            [
+                CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
+            ]
+        )
         resp = await client.post("/api/camera/Cam1/restart")
         assert resp.status_code == 200
 
@@ -123,6 +133,7 @@ class TestAPIEndpoints:
 
     async def test_recordings_tree_empty(self, client, tmp_path):
         from app.config import settings
+
         settings.recordings_dir = tmp_path
         resp = await client.get("/api/recordings/tree")
         assert resp.status_code == 200
@@ -134,6 +145,7 @@ class TestAPIEndpoints:
 
     async def test_stream_recording_not_found(self, client, tmp_path):
         from app.config import settings
+
         settings.recordings_dir = tmp_path
         resp = await client.get("/api/recordings/stream", params={"path": "nonexistent.mp4"})
         assert resp.status_code == 404

@@ -1,6 +1,4 @@
 import logging
-from datetime import datetime
-from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
@@ -8,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.config import settings
+from app.recorder import manager
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,8 +19,6 @@ app = FastAPI(title="CCTV Recorder")
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-from app.recorder import manager
-
 
 @app.on_event("startup")
 async def startup():
@@ -33,17 +30,13 @@ async def startup():
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     return templates.TemplateResponse(
-        "dashboard.html",
-        {"request": request, "cameras": manager.get_all_status()},
+        request, "dashboard.html", {"cameras": manager.get_all_status()}
     )
 
 
 @app.get("/recordings", response_class=HTMLResponse)
 async def recordings_page(request: Request):
-    return templates.TemplateResponse(
-        "recordings.html",
-        {"request": request},
-    )
+    return templates.TemplateResponse(request, "recordings.html", {})
 
 
 @app.get("/api/cameras")
@@ -115,47 +108,55 @@ async def recordings_tree():
                 continue
             month_id = f"{year}/{month_dir.name}"
             month_name = month_name_es(int(month_dir.name))
-            nodes.append({
-                "id": month_id,
-                "parent": year,
-                "text": f"{month_dir.name} ({month_name})",
-                "type": "folder",
-            })
+            nodes.append(
+                {
+                    "id": month_id,
+                    "parent": year,
+                    "text": f"{month_dir.name} ({month_name})",
+                    "type": "folder",
+                }
+            )
 
             for day_dir in sorted(month_dir.iterdir()):
                 if not day_dir.is_dir() or not day_dir.name.isdigit():
                     continue
                 day_id = f"{month_id}/{day_dir.name}"
-                nodes.append({
-                    "id": day_id,
-                    "parent": month_id,
-                    "text": day_dir.name,
-                    "type": "folder",
-                })
+                nodes.append(
+                    {
+                        "id": day_id,
+                        "parent": month_id,
+                        "text": day_dir.name,
+                        "type": "folder",
+                    }
+                )
 
                 for cam_dir in sorted(day_dir.iterdir()):
                     if not cam_dir.is_dir():
                         continue
                     cam_id = f"{day_id}/{cam_dir.name}"
-                    nodes.append({
-                        "id": cam_id,
-                        "parent": day_id,
-                        "text": cam_dir.name,
-                        "type": "folder",
-                    })
+                    nodes.append(
+                        {
+                            "id": cam_id,
+                            "parent": day_id,
+                            "text": cam_dir.name,
+                            "type": "folder",
+                        }
+                    )
 
                     for video in sorted(cam_dir.iterdir()):
                         if video.suffix.lower() not in (".mp4", ".mkv", ".avi"):
                             continue
                         vid_id = f"{cam_id}/{video.stem}"
                         rel_path = str(video.relative_to(base))
-                        nodes.append({
-                            "id": vid_id,
-                            "parent": cam_id,
-                            "text": video.name,
-                            "type": "video",
-                            "data": {"path": rel_path},
-                        })
+                        nodes.append(
+                            {
+                                "id": vid_id,
+                                "parent": cam_id,
+                                "text": video.name,
+                                "type": "video",
+                                "data": {"path": rel_path},
+                            }
+                        )
 
     return nodes
 
@@ -167,7 +168,7 @@ async def stream_recording(path: str):
     try:
         resolved.relative_to(base)
     except ValueError:
-        raise HTTPException(403, "Access denied")
+        raise HTTPException(403, "Access denied") from None
     if not resolved.exists() or not resolved.is_file():
         raise HTTPException(404, "File not found")
     return FileResponse(str(resolved), media_type="video/mp4")
@@ -175,7 +176,18 @@ async def stream_recording(path: str):
 
 def month_name_es(m: int) -> str:
     months = [
-        "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+        "",
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
     ]
     return months[m] if 1 <= m <= 12 else ""

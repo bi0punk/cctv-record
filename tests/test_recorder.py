@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from app.config import CameraConfig
 from app.recorder import CameraRecorder, RecorderManager
 
@@ -84,9 +86,11 @@ class TestCameraRecorderManager:
 
     async def test_start_all(self):
         mgr = RecorderManager()
-        mgr.load_cameras([
-            CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
-        ])
+        mgr.load_cameras(
+            [
+                CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
+            ]
+        )
         await mgr.start_all()
         assert mgr.started_at is not None
         statuses = mgr.get_all_status()
@@ -96,18 +100,22 @@ class TestCameraRecorderManager:
 
     async def test_stop_all_when_not_started(self):
         mgr = RecorderManager()
-        mgr.load_cameras([
-            CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
-        ])
+        mgr.load_cameras(
+            [
+                CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
+            ]
+        )
         await mgr.stop_all()
         assert mgr.system_status()["recording_count"] == 0
 
     async def test_start_stop_individual(self):
         mgr = RecorderManager()
-        mgr.load_cameras([
-            CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
-            CameraConfig(name="Cam2", url="rtsp://cam2", split="none"),
-        ])
+        mgr.load_cameras(
+            [
+                CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
+                CameraConfig(name="Cam2", url="rtsp://cam2", split="none"),
+            ]
+        )
         await mgr.start_camera("Cam1")
         status = mgr.get_status("Cam1")
         assert status["status"] == "recording"
@@ -124,9 +132,11 @@ class TestCameraRecorderManager:
 
     async def test_restart_camera(self):
         mgr = RecorderManager()
-        mgr.load_cameras([
-            CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
-        ])
+        mgr.load_cameras(
+            [
+                CameraConfig(name="Cam1", url="rtsp://cam1", split="none"),
+            ]
+        )
         await mgr.start_camera("Cam1")
         await mgr.restart_camera("Cam1")
         status = mgr.get_status("Cam1")

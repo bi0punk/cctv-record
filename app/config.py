@@ -6,7 +6,6 @@ from typing import Literal
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-
 load_dotenv()
 
 
@@ -19,7 +18,7 @@ class CameraConfig(BaseModel):
 class Settings(BaseModel):
     cameras: list[CameraConfig] = Field(default=[])
     recordings_dir: Path = Field(default=Path("./recordings"))
-    host: str = Field(default="0.0.0.0")
+    host: str = Field(default="0.0.0.0")  # nosec B104 - grabador CCTV debe aceptar conexiones LAN
     port: int = Field(default=8000)
 
 
@@ -28,13 +27,13 @@ def load_settings() -> Settings:
     try:
         cameras_data = json.loads(raw)
     except json.JSONDecodeError:
-        raise ValueError(f"CAMERAS_JSON is not valid JSON: {raw[:200]}")
+        raise ValueError(f"CAMERAS_JSON is not valid JSON: {raw[:200]}") from None
     if not isinstance(cameras_data, list):
         raise ValueError("CAMERAS_JSON must be a JSON array")
     cameras = [CameraConfig(**c) for c in cameras_data]
 
     recordings_dir = Path(os.getenv("RECORDINGS_DIR", "./recordings"))
-    host = os.getenv("HOST", "0.0.0.0")
+    host = os.getenv("HOST", "0.0.0.0")  # nosec B104
     port = int(os.getenv("PORT", "8000"))
 
     return Settings(
